@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>俄语阅读与翻译</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .article-selector {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .article-selector select {
+            padding: 8px;
+            font-size: 16px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .article-container {
+            display: flex;
+            gap: 20px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .article-section {
+            flex: 1;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #fff;
+        }
+        .article-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+        }
+        .article-content {
+            font-size: 16px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        .russian-text {
+            color: #2c3e50;
+        }
+        .chinese-text {
+            color: #34495e;
+        }
+        .word {
+            cursor: pointer;
+            position: relative;
+            display: inline-block;
+        }
+        .word:hover::after {
+            content: attr(data-translation);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            white-space: nowrap;
+            z-index: 1000;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="article-selector">
+            <select id="articleSelect" onchange="loadArticle()">
+                <option value="">选择文章</option>
+                {% for article in articles %}
+                <option value="{{ article.id }}">{{ article.title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="article-container">
+            <div class="article-section">
+                <h2 class="article-title" id="russianTitle"></h2>
+                <div class="article-content russian-text" id="russianContent"></div>
+            </div>
+            <div class="article-section">
+                <h2 class="article-title" id="chineseTitle"></h2>
+                <div class="article-content chinese-text" id="chineseContent"></div>
+            </div>
+        </div>
+        <div class="loading" id="loading">加载中...</div>
+    </div>
+
+    <script>
+        const articles = {{ articles|tojson|safe }};
+        let currentArticle = null;
+
+        function loadArticle() {
+            const select = document.getElementById('articleSelect');
+            const articleId = parseInt(select.value);
+            if (!articleId) return;
+
+            currentArticle = articles.find(a => a.id === articleId);
+            if (!currentArticle) return;
+
+            document.getElementById('russianTitle').textContent = currentArticle.title;
+            document.getElementById('chineseTitle').textContent = currentArticle.title;
+
+            const russianContent = document.getElementById('russianContent');
+            const chineseContent = document.getElementById('chineseContent');
+
+            // 处理俄语文本，为每个单词添加翻译功能
+            const russianWords = currentArticle.content.split(/\s+/);
+            russianContent.innerHTML = russianWords.map(word => {
+                const cleanWord = word.replace(/[.,!?;:]/g, '');
+                return `<span class="word" data-translation="加载中..." onclick="translateWord('${cleanWord}')">${word}</span>`;
+            }).join(' ');
+
+            // 显示中文翻译
+            chineseContent.textContent = currentArticle.translation;
+        }
+
+        async function translateWord(word) {
+            const wordElement = event.target;
+            if (wordElement.dataset.translation !== "加载中...") return;
+
+            try {
+                const response = await fetch('/translate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ word: word })
+                });
+                const data = await response.json();
+                wordElement.dataset.translation = data.translation;
+            } catch (error) {
+                console.error('Translation error:', error);
+                wordElement.dataset.translation = "翻译失败";
+            }
+        }
+    </script>
+</body>
+</html> 

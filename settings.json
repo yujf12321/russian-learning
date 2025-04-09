@@ -1,0 +1,7 @@
+{
+    "python.analysis.extraPaths": ["E:\\russian"],
+    "terminal.integrated.cwd": "E:\\russian",
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingImports": "none"
+    }
+}
